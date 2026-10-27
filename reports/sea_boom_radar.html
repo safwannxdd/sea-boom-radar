@@ -1,0 +1,235 @@
+<title>SEA Boom Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with charts allowed to run slightly wider; findings flow top to bottom like an investment memo. */
+:root {
+  --bg: #f6f7f5; --surface: #ffffff; --ink: #15181d; --ink-2: #4a4f57; --ink-3: #7b8089;
+  --rule: #dfe2e0; --grid: #eceeec;
+  --boom: #2a78d6; --noise: #eb6834; --accent: #1c5cab;
+  --chip-bg: #eaf1fb; --warn-bg: #fdf0e9;
+  --f-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121417; --surface: #1a1d21; --ink: #f1f2f3; --ink-2: #c1c5cb; --ink-3: #8d939b;
+  --rule: #2c3036; --grid: #24282d; --boom: #3987e5; --noise: #d95926; --accent: #86b6ef;
+  --chip-bg: #1d2a3b; --warn-bg: #3a2418; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121417; --surface: #1a1d21; --ink: #f1f2f3; --ink-2: #c1c5cb; --ink-3: #8d939b;
+  --rule: #2c3036; --grid: #24282d; --boom: #3987e5; --noise: #d95926; --accent: #86b6ef;
+  --chip-bg: #1d2a3b; --warn-bg: #3a2418; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--f-body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 72px; display: grid; gap: 44px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(34px, 6vw, 52px); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 17px; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+section { display: grid; gap: 16px; min-width: 0; }
+.eyebrow { font: 500 12px/1 var(--f-data); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.lede { font-size: 20px; color: var(--ink-2); }
+.meta { font: 400 13px/1.5 var(--f-data); color: var(--ink-3); }
+.b { color: var(--boom); font-weight: 600; } .n { color: var(--noise); font-weight: 600; }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+.verdict { border-left: 3px solid var(--noise); background: var(--warn-bg); padding: 16px 18px; border-radius: 0 6px 6px 0; display: grid; gap: 8px; }
+.figure { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px 18px 12px; display: grid; gap: 10px; min-width: 0; position: relative; }
+.figure svg { width: 100%; height: auto; display: block; overflow: visible; }
+.figure svg text { fill: var(--ink-2); font: 11px var(--f-data); }
+.figcap { font: 400 13px/1.5 var(--f-data); color: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font: 12px var(--f-data); color: var(--ink-2); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font: 12px/1.4 var(--f-data); padding: 6px 9px; border-radius: 4px; white-space: nowrap; transform: translate(-50%, -110%); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; }
+.stat { display: grid; gap: 4px; }
+.stat .v { font: 700 34px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 14px; color: var(--ink-2); }
+.tbl { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font: 13px/1.4 var(--f-data); font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--ink-3); font-weight: 500; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+tr:last-child td { border-bottom: 0; }
+td.num { text-align: right; } th.num { text-align: right; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; background: var(--chip-bg); color: var(--ink); }
+.pill.echo { background: var(--warn-bg); }
+ol, ul { margin: 0; padding-left: 22px; display: grid; gap: 8px; max-width: 68ch; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+@media (max-width: 520px) { body { font-size: 16px; } .wrap { padding-block: 32px 56px; gap: 36px; } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid; gap:14px">
+    <div class="eyebrow">Research note · October 2026 · Southeast Asia</div>
+    <h1>SEA Boom Radar</h1>
+    <p class="lede">Can public data tell which Silicon Valley trends will become Southeast Asia's next venture booms, and which are hype? We backtested two methods on 19 historical cases. The composite scores failed. One timing signal held up.</p>
+    <p class="meta">7 free data sources · 43 sectors · 2007–2026 · every score uses only data available at the time</p>
+  </header>
+
+  <section>
+    <div class="stats">
+      <div class="stat"><div class="v">19</div><div class="l">labelled SF waves: <span class="b">7 became SEA booms</span>, <span class="n">12 fizzled</span></div></div>
+      <div class="stat"><div class="v">0.62</div><div class="l">best composite score (AUC), not statistically significant</div></div>
+      <div class="stat"><div class="v">0.77</div><div class="l">AUC of the SF–SEA synchronisation signal alone (p = 0.03)</div></div>
+      <div class="stat"><div class="v">~10 mo</div><div class="l">median lag before real booms reach SEA; hype arrives in 0</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">The question</div>
+    <h2>Many of SEA's biggest venture booms began as San Francisco ideas. So did a lot of the hype.</h2>
+    <p>Grab and Gojek followed Uber, GoPay and GCash followed Venmo and Square, and Atome and Kredivo followed Affirm. But daily deals, coworking, e-scooters, cloud kitchens, quick commerce, NFTs, the metaverse, play-to-earn and Clubhouse also started in SF, and each was loudly predicted to sweep the region. The useful question for a Singapore fund is narrow: <strong>while a wave is still hot in SF, can you tell which kind it is?</strong></p>
+    <p>We assembled search interest for the SF Bay Area and six SEA markets (Google Trends), Hacker News discussion, Y Combinator batches, GitHub activity, research output (OpenAlex), Wikipedia pageviews in English and five SEA languages, and World Bank readiness data. Each count is converted to a share of its platform's total, so platform growth doesn't masquerade as a trend.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Pre-registered result</div>
+    <h2>The composite scores did not separate booms from hype</h2>
+    <p>Two methods were fixed before the backtest. <strong>Method A</strong> scores convergence: are attention, founders, developers and research rising together, steadily, without a spike? <strong>Method B</strong> uses time-series statistics plus a machine-learning model trained on 1,865 YC theme-years. Both were scored only inside each wave's decision window (the four years before a boom reached SEA, or the run-up to a fad's peak) using data available at that moment.</p>
+    <div class="figure" id="fig-auc">
+      <svg id="auc" viewBox="0 0 700 250" role="img" aria-label="AUC with 95% confidence intervals for each method"></svg>
+      <div class="figcap">AUC = probability a random boom-year scores above a random hype-year. 0.5 is a coin flip. Bars show 95% intervals from resampling whole sectors.</div>
+    </div>
+    <div class="verdict">
+      <h3>What this means</h3>
+      <p>Neither method, nor their average, is an investment signal as built. Every interval crosses 0.5, and at a fixed threshold the scores flagged 10 of 12 fads. An earlier run of this study reported 0.73 for Method A. That number came from an evaluation-window bug and is retracted.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">What held up</div>
+    <h2>Hype hits SF and SEA in the same month. Real booms arrive later.</h2>
+    <p>Breaking the scores into parts showed that one ingredient did nearly all of the work: <strong>timing between markets</strong>. A media-driven wave moves search interest in San Francisco and Jakarta, Manila and Ho Chi Minh City at the same time, because the news cycle is global. A real adoption wave needs local operators, licences and payment rails, so SEA follows months later.</p>
+    <div class="figure">
+      <div class="legend"><span><span class="key" style="background:var(--boom)"></span>became an SEA boom</span><span><span class="key" style="background:var(--noise)"></span>fizzled</span></div>
+      <svg id="lag" viewBox="0 0 700 330" role="img" aria-label="Scatter of SF-to-SEA lag versus strength of echo"></svg>
+      <div class="figcap">Each dot is one SF wave over its full history. x = the lag (months) at which SF search changes best predict SEA search changes. y = how strongly SEA echoes SF at that lag. Fads cluster top-left: an instant, strong echo.</div>
+    </div>
+    <div class="figure">
+      <svg id="sync" viewBox="0 0 700 400" role="img" aria-label="Same-month SF-SEA correlation per sector during the decision window"></svg>
+      <div class="figcap">Same-month correlation of 12-month changes in SF and SEA search interest, measured only inside the decision window, so nothing here uses hindsight. Sectors with too little SEA search volume are omitted (13 of 19 shown).</div>
+    </div>
+    <p>As a single signal, low synchronisation separated booms from fads with an AUC of 0.77 (permutation p = 0.03). We found it <em>after</em> the main test failed and picked it from six components, so the honest reading is a strong hypothesis, not a proven edge. The interval runs from about 0.49 to 1.0 with only 13 sectors.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Two more findings</div>
+    <h2>Crowd signals point the wrong way</h2>
+    <ul>
+      <li><strong>Following the buzz loses.</strong> Ranking waves by how fast SF attention is growing scored an AUC of 0.37, worse than a coin flip. At decision time, the fads were simply louder than the future booms.</li>
+      <li><strong>Founders chase the same waves.</strong> The model trained to predict whether YC founders keep building a theme scored 0.27 against SEA outcomes. Inverted, that's 0.73. Founder momentum peaked in NFTs, the metaverse and play-to-earn, not in BNPL or digital banking.</li>
+      <li><strong>Shape tells you only afterwards.</strong> Two to three years after the peak, booms kept 63% of peak SF interest and fads kept 18%. Fads are 3.5× spikier. By the time this is visible, the investment decision has passed.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="eyebrow">Screening, October 2026</div>
+    <h2>Where today's SF trends sit</h2>
+    <p>The table applies the same measurements to 18 current SF themes. Read it as a diligence queue, not a forecast: the composite scores in the first two columns did not pass the backtest. The synchronisation column is the most informative. <span class="pill echo">echo</span> marks themes where SEA moves in lockstep with SF, the pattern every past fad showed. Google Trends rate-limited this run, so these attention series come from Wikipedia pageviews in English and SEA languages (2015 onward), and many themes have too little SEA-language coverage to measure.</p>
+    <div class="tbl"><table id="radar"><thead><tr><th>SF theme</th><th class="num">Method A</th><th class="num">Method B</th><th class="num">SF–SEA sync</th><th>SEA right now</th><th>Read</th></tr></thead><tbody></tbody></table></div>
+    <p>Two themes look the way past booms looked: <strong>electric two-wheelers</strong> (SEA rising on its own schedule, no echo) and <strong>AI data centres</strong> (no echo, consistent with the Johor and Batam build-out driven by local infrastructure). <strong>Stablecoins</strong> show the strongest echo of any theme (0.78), the play-to-earn pattern, so SEA interest there may be riding the US policy news cycle rather than local adoption. These reads rest on one signal and thin data.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Method and limits</div>
+    <h2>How to check this</h2>
+    <ul>
+      <li><strong>No look-ahead.</strong> Each year's score uses only data up to that year. The ML model is retrained every year on examples whose outcome was already known. All features are ratios or growth rates, so Google Trends' 0–100 rescaling can't leak the future.</li>
+      <li><strong>Labels fixed in advance</strong> with a one-line rationale each. Six disputed sectors (crypto exchanges, telemedicine, edtech, insurtech, P2P lending, B2B SaaS) are excluded.</li>
+      <li><strong>Small sample.</strong> 19 events is enough to reject a strong claim and to suggest a hypothesis, not to estimate an accuracy.</li>
+      <li><strong>Free data only.</strong> No deal-level funding data. YC is mostly B2B, so the founder signal is thin for consumer sectors.</li>
+      <li><strong>Blind spot by design:</strong> SEA-native booms with no SF precedent (super-apps, live and social commerce).</li>
+    </ul>
+    <p><strong>Next step:</strong> fix a synchronisation-led score today and score it on waves that resolve after October 2026. That is the only test free of hindsight. The code, data pipeline and all six notebooks are reproducible from public sources.</p>
+  </section>
+  <hr>
+  <p class="meta">Data: Google Trends, Hacker News (Algolia), Y Combinator directory, GitHub, OpenAlex, Wikimedia pageviews, World Bank. Historical labels reflect public reporting, including Google–Temasek–Bain e-Conomy SEA verticals.</p>
+</div>
+
+<script>
+const AUC = [
+  {m:"Method A · convergence", a:0.617, lo:0.448, hi:0.767},
+  {m:"Method B · time series + ML", a:0.524, lo:0.311, hi:0.750},
+  {m:"Ensemble (A+B)/2", a:0.602, lo:0.392, hi:0.810},
+  {m:"Follow the buzz", a:0.372, lo:0.177, hi:0.576},
+];
+const SYNC = [{"sector":"bnpl","label":"boom","sync":-0.49},{"sector":"quick_commerce","label":"noise","sync":-0.29},{"sector":"digital_payments","label":"boom","sync":-0.22},{"sector":"ride_hailing","label":"boom","sync":-0.12},{"sector":"food_delivery","label":"boom","sync":-0.08},{"sector":"video_streaming","label":"boom","sync":0.04},{"sector":"digital_banks","label":"boom","sync":0.21},{"sector":"coworking","label":"noise","sync":0.25},{"sector":"retail_investing","label":"boom","sync":0.32},{"sector":"cloud_kitchens","label":"noise","sync":0.44},{"sector":"consumer_3d_printing","label":"noise","sync":0.59},{"sector":"social_audio","label":"noise","sync":0.6},{"sector":"play_to_earn","label":"noise","sync":0.94}];
+const LAGS = [{"sector":"ride_hailing","label":"boom","lag":5,"x":0.54},{"sector":"food_delivery","label":"boom","lag":14,"x":0.34},{"sector":"digital_payments","label":"boom","lag":24,"x":0.1},{"sector":"bnpl","label":"boom","lag":10,"x":0.34},{"sector":"digital_banks","label":"boom","lag":24,"x":0.28},{"sector":"retail_investing","label":"boom","lag":2,"x":0.26},{"sector":"video_streaming","label":"boom","lag":0,"x":0.17},{"sector":"daily_deals","label":"noise","lag":1,"x":0.73},{"sector":"coworking","label":"noise","lag":0,"x":0.74},{"sector":"scooter_sharing","label":"noise","lag":6,"x":0.48},{"sector":"cloud_kitchens","label":"noise","lag":0,"x":0.46},{"sector":"quick_commerce","label":"noise","lag":0,"x":0.44},{"sector":"nft","label":"noise","lag":0,"x":0.89},{"sector":"metaverse","label":"noise","lag":0,"x":0.9},{"sector":"play_to_earn","label":"noise","lag":0,"x":0.9},{"sector":"social_audio","label":"noise","lag":2,"x":0.62},{"sector":"drone_delivery","label":"noise","lag":14,"x":0.44},{"sector":"consumer_3d_printing","label":"noise","lag":0,"x":0.82}];
+const RADAR = [{"sector":"prediction_markets","A":0.79,"B":0.77,"sync":null,"phase":"no SEA signal"},{"sector":"ai_datacenters","A":0.8,"B":0.73,"sync":-0.16,"phase":"SEA fading"},{"sector":"generative_ai","A":0.65,"B":0.78,"sync":null,"phase":"SEA rising now"},{"sector":"social_commerce","A":0.61,"B":0.69,"sync":-0.02,"phase":"SEA fading"},{"sector":"ai_healthcare","A":0.67,"B":0.55,"sync":null,"phase":"no SEA signal"},{"sector":"stablecoins","A":0.61,"B":0.59,"sync":0.78,"phase":"SEA rising now"},{"sector":"agritech","A":0.54,"B":0.65,"sync":null,"phase":"no SEA signal"},{"sector":"smb_vertical_saas","A":0.53,"B":0.65,"sync":null,"phase":"no SEA signal"},{"sector":"carbon_markets","A":0.56,"B":0.62,"sync":0.17,"phase":"SEA fading"},{"sector":"creator_economy","A":0.54,"B":0.62,"sync":null,"phase":"no SEA signal"},{"sector":"ai_coding","A":0.62,"B":0.53,"sync":null,"phase":"no SEA signal"},{"sector":"humanoid_robots","A":0.67,"B":0.49,"sync":0.44,"phase":"SEA fading"},{"sector":"autonomous_vehicles","A":0.48,"B":0.67,"sync":0.15,"phase":"SEA flat"},{"sector":"ai_agents","A":0.73,"B":0.41,"sync":null,"phase":"no SEA signal"},{"sector":"cybersecurity","A":0.57,"B":0.54,"sync":0.5,"phase":"SEA fading"},{"sector":"battery_storage","A":0.42,"B":0.66,"sync":null,"phase":"no SEA signal"},{"sector":"embedded_finance","A":0.37,"B":0.68,"sync":null,"phase":"no SEA signal"},{"sector":"electric_two_wheelers","A":0.51,"B":0.39,"sync":-0.12,"phase":"SEA rising now"}];
+
+const NS = "http://www.w3.org/2000/svg";
+const nice = s => s.replace(/_/g, " ").replace("bnpl","BNPL").replace(/\bai\b/g,"AI").replace("nft","NFT").replace("smb","SMB").replace("3d","3D");
+function el(tag, attrs, parent, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; }
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function tipFor(svg) {
+  const fig = svg.closest(".figure"); const t = document.createElement("div"); t.className = "tip"; t.hidden = true; fig.appendChild(t);
+  return { show(evt, html) { const r = fig.getBoundingClientRect(); t.innerHTML = html; t.hidden = false; t.style.left = (evt.clientX - r.left) + "px"; t.style.top = (evt.clientY - r.top) + "px"; }, hide() { t.hidden = true; } };
+}
+
+function drawAUC() {
+  const s = document.getElementById("auc"); s.innerHTML = "";
+  const L = 210, R = 670, top = 30, rowH = 50, x = v => L + (v - 0.1) / 0.9 * (R - L);
+  [0.1,0.3,0.5,0.7,0.9,1.0].forEach(v => { el("line",{x1:x(v),x2:x(v),y1:top-12,y2:top+rowH*AUC.length-14,stroke:css(v===0.5?"--ink-3":"--grid"),"stroke-width":v===0.5?1.5:1,"stroke-dasharray":v===0.5?"4 3":""},s); el("text",{x:x(v),y:top+rowH*AUC.length+4,"text-anchor":"middle"},s,v.toFixed(1)); });
+  el("text",{x:x(0.5)+5,y:top-16},s,"coin flip");
+  const tip = tipFor(s);
+  AUC.forEach((d,i) => {
+    const y = top + i*rowH + 8;
+    el("text",{x:0,y:y+4,style:`fill:${css("--ink")};font-size:12px`},s,d.m);
+    el("line",{x1:x(d.lo),x2:x(d.hi),y1:y,y2:y,stroke:css("--ink-3"),"stroke-width":2,"stroke-linecap":"round"},s);
+    const c = el("circle",{cx:x(d.a),cy:y,r:6,fill:css("--accent"),stroke:css("--surface"),"stroke-width":2},s);
+    el("text",{x:x(d.a),y:y-12,"text-anchor":"middle",style:`fill:${css("--ink")}`},s,d.a.toFixed(2));
+    const hit = el("rect",{x:L,y:y-18,width:R-L,height:36,fill:"transparent"},s);
+    hit.addEventListener("mousemove", e => tip.show(e, `${d.m}<br>AUC ${d.a.toFixed(2)} · 95% CI ${d.lo.toFixed(2)}–${d.hi.toFixed(2)}`)); hit.addEventListener("mouseleave", tip.hide);
+  });
+}
+
+function drawLag() {
+  const s = document.getElementById("lag"); s.innerHTML = "";
+  const L = 50, R = 680, T = 16, B = 290, x = v => L + v/26*(R-L), y = v => B - v/1.0*(B-T);
+  [0,6,12,18,24].forEach(v => { el("line",{x1:x(v),x2:x(v),y1:T,y2:B,stroke:css("--grid")},s); el("text",{x:x(v),y:B+16,"text-anchor":"middle"},s,v); });
+  [0,0.25,0.5,0.75,1].forEach(v => { el("line",{x1:L,x2:R,y1:y(v),y2:y(v),stroke:css("--grid")},s); el("text",{x:L-8,y:y(v)+4,"text-anchor":"end"},s,v.toFixed(2)); });
+  el("text",{x:(L+R)/2,y:B+34,"text-anchor":"middle"},s,"months until SEA follows SF");
+  el("text",{x:14,y:(T+B)/2,"text-anchor":"middle",transform:`rotate(-90 14 ${(T+B)/2})`},s,"strength of SEA echo");
+  const tip = tipFor(s);
+  const jit = {}; LAGS.forEach(d => { const k = d.lag+"_"+Math.round(d.x*20); jit[k] = (jit[k]||0)+1; d.j = (jit[k]-1)*9; });
+  LAGS.forEach(d => {
+    const cx = x(d.lag)+d.j, cy = y(d.x);
+    const c = el("circle",{cx,cy,r:6,fill:css(d.label==="boom"?"--boom":"--noise"),stroke:css("--surface"),"stroke-width":2},s);
+    const h = el("circle",{cx,cy,r:13,fill:"transparent"},s);
+    h.addEventListener("mousemove", e => tip.show(e, `${nice(d.sector)} · ${d.label==="boom"?"SEA boom":"fizzled"}<br>lag ${d.lag} mo · echo ${d.x.toFixed(2)}`)); h.addEventListener("mouseleave", tip.hide);
+  });
+  [["nft",-6,-10],["metaverse",14,4],["food_delivery",8,4],["bnpl",8,-6],["digital_payments",-4,-12],["ride_hailing",8,4],["daily_deals",8,-6]].forEach(([k,dx,dy]) => { const d = LAGS.find(o=>o.sector===k); el("text",{x:x(d.lag)+d.j+dx,y:y(d.x)+dy,"text-anchor":dx<0?"end":"start",style:`fill:${css("--ink")}`},s,nice(k)); });
+}
+
+function drawSync() {
+  const s = document.getElementById("sync"); s.innerHTML = "";
+  const L = 170, R = 660, T = 10, rowH = 28, x = v => L + (v+0.6)/1.6*(R-L), B = T + SYNC.length*rowH;
+  [-0.5,0,0.5,1].forEach(v => { el("line",{x1:x(v),x2:x(v),y1:T,y2:B,stroke:css(v===0?"--ink-3":"--grid")},s); el("text",{x:x(v),y:B+16,"text-anchor":"middle"},s,v.toFixed(1)); });
+  el("text",{x:x(-0.3),y:B+34,"text-anchor":"middle"},s,"← SEA moves on its own clock");
+  el("text",{x:x(0.65),y:B+34,"text-anchor":"middle"},s,"SEA echoes SF →");
+  const tip = tipFor(s);
+  SYNC.forEach((d,i) => {
+    const y = T + i*rowH, x0 = x(0), x1 = x(d.sync), w = Math.max(Math.abs(x1-x0),2);
+    el("text",{x:L-10,y:y+rowH/2+4,"text-anchor":"end",style:`fill:${css("--ink")}`},s,nice(d.sector));
+    el("rect",{x:Math.min(x0,x1),y:y+6,width:w,height:rowH-12,rx:3,fill:css(d.label==="boom"?"--boom":"--noise")},s);
+    el("text",{x:d.sync<0?x1-6:x1+6,y:y+rowH/2+4,"text-anchor":d.sync<0?"end":"start"},s,d.sync.toFixed(2));
+    const h = el("rect",{x:L,y,width:R-L,height:rowH,fill:"transparent"},s);
+    h.addEventListener("mousemove", e => tip.show(e, `${nice(d.sector)} · ${d.label==="boom"?"SEA boom":"fizzled"}<br>same-month correlation ${d.sync.toFixed(2)}`)); h.addEventListener("mouseleave", tip.hide);
+  });
+}
+
+function fillRadar() {
+  const tb = document.querySelector("#radar tbody");
+  const rows = [...RADAR].sort((a,b) => (a.sync==null) - (b.sync==null) || (a.sync??0) - (b.sync??0));
+  tb.innerHTML = rows.map(d => {
+    let read = "insufficient SEA data", cls = "";
+    if (d.sync != null) { if (d.sync >= 0.4) { read = "echo"; cls = "echo"; } else if (d.sync <= 0 && d.phase === "SEA rising now") read = "boom-like pattern"; else if (d.sync <= 0) read = "no echo"; else read = "weak echo"; }
+    return `<tr><td>${nice(d.sector)}</td><td class="num">${d.A.toFixed(2)}</td><td class="num">${d.B.toFixed(2)}</td><td class="num">${d.sync==null?"–":d.sync.toFixed(2)}</td><td>${d.phase}</td><td><span class="pill ${cls}">${read}</span></td></tr>`;
+  }).join("");
+}
+
+function drawAll() { drawAUC(); drawLag(); drawSync(); }
+fillRadar(); drawAll();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+new MutationObserver(drawAll).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+</script>

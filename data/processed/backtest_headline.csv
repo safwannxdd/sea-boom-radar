@@ -1,0 +1,7 @@
+method,AUC,CI_low,CI_high,perm_p
+Method A (convergence),0.617,0.448,0.767,0.095
+Method B (time-series + ML),0.524,0.311,0.75,0.428
+  B1 statistics only,0.561,0.33,0.804,0.304
+  B2 ML only,0.269,0.118,0.435,0.99
+Ensemble (A+B)/2,0.602,0.392,0.81,0.208
+Baseline: follow the buzz,0.372,0.177,0.576,0.864

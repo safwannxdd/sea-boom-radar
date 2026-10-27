@@ -1,0 +1,12 @@
+pandas>=2.2
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.4
+statsmodels>=0.14
+matplotlib>=3.8
+requests>=2.31
+pytrends>=4.9
+ruptures>=1.1
+pyarrow>=14
+jupytext>=1.16
+nbconvert>=7
